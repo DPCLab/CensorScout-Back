@@ -29,6 +29,8 @@ spec:
         env:
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /var/secrets/google/key.json
+        - name: NODE_ENV
+          value: production
 ---
 apiVersion: "autoscaling/v1"
 kind: "HorizontalPodAutoscaler"
