@@ -22,7 +22,7 @@ spec:
           secretName: gcloud-key
       containers:
       - name: "github-dpclab-censorscout-back"
-        image: "gcr.io/dpclab-215801/github-dpclab-censorscout-back:7924b1e782e0ce528fd2cf3533f1a0df1d421a0f"
+        image: "gcr.io/dpclab-215801/github-dpclab-censorscout-back:e9dd3edf2ce94774d5da040507ba2a8f87a08719"
         volumeMounts:
         - name: google-cloud-key
           mountPath: /var/secrets/google

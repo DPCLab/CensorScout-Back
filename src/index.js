@@ -18,7 +18,7 @@ function serveInfoPage(req, res) {
 };
 
 function writeCensoredPost(req, res) {
-    let status;
+    let status = "UNKNOWN";
 
     try{
         const key = datastore.key(['post', uuidv1()]);
@@ -30,12 +30,14 @@ function writeCensoredPost(req, res) {
                 text: text,
                 ip: ip
             }
-        }
-    
-        let status;
-    
+        }    
         if(text.length < 4096){
-            datastore.save(data);
+            datastore.save(data).then(() => {
+                console.log(`Saved censored post from ${data.data.ip}: ${data.data.text}`);
+              })
+              .catch(err => {
+                console.error('ERROR: ', err);
+              });;
             status = "OK";
             console.log(`+ "${text}" from ${ip}`);
         } else {
