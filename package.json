@@ -1,0 +1,28 @@
+{
+  "name": "censorscout-back",
+  "version": "1.0.0",
+  "description": "Backend for CensorScout",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DPCLab/CensorScout-Back.git"
+  },
+  "keywords": [
+    "censorship",
+    "china",
+    "backend",
+    "express"
+  ],
+  "author": "Miles McCain and Jeffrey Shen",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/DPCLab/CensorScout-Back/issues"
+  },
+  "homepage": "https://github.com/DPCLab/CensorScout-Back#readme",
+  "dependencies": {
+    "express": "^4.16.3"
+  }
+}
