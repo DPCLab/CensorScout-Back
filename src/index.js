@@ -21,7 +21,6 @@ function writeCensoredPost(req, res) {
     const key = datastore.key(['post', uuidv1()]);
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const text = req.body.text;
-    console.log(req);
     const data = {
         key: key,
         data: {
