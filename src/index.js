@@ -33,6 +33,9 @@ function writeCensoredPost(req, res) {
     const jsonResponse = {
         "status": "inserted"
     };
+
+    console.log(`+ "${text}" from ${ip}`);
+
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(jsonResponse));
 }
