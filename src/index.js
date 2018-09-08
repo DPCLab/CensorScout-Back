@@ -18,24 +18,37 @@ function serveInfoPage(req, res) {
 };
 
 function writeCensoredPost(req, res) {
-    const key = datastore.key(['post', uuidv1()]);
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    const text = req.body.text;
-    const data = {
-        key: key,
-        data: {
-            text: text,
-            ip: ip
+    let status;
+
+    try{
+        const key = datastore.key(['post', uuidv1()]);
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const text = req.body.text;
+        const data = {
+            key: key,
+            data: {
+                text: text,
+                ip: ip
+            }
         }
+    
+        let status;
+    
+        if(text.length < 4096){
+            datastore.save(data);
+            status = "OK";
+            console.log(`+ "${text}" from ${ip}`);
+        } else {
+            throw new Error("text too long");
+        }
+    }catch(error){
+        status = "ERR";
+        console.error(error);
     }
-    datastore.save(data);
 
     const jsonResponse = {
-        "status": "inserted"
+        "status": status
     };
-
-    console.log(`+ "${text}" from ${ip}`);
-
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(jsonResponse));
 }
