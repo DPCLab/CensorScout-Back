@@ -24,11 +24,13 @@ function writeCensoredPost(req, res) {
         const key = datastore.key(['post', uuidv1()]);
         const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         const text = req.body.text;
+        const time = new Date();
         const data = {
             key: key,
             data: {
                 text: text,
-                ip: ip
+                ip: ip,
+                time: time
             }
         }
         if (text.length < 4096) {
@@ -56,9 +58,49 @@ function writeCensoredPost(req, res) {
     res.send(JSON.stringify(jsonResponse));
 }
 
+function correspondUserVersion(req, res) {
+    const LATEST_VERSION = 1;
+
+    try {
+        const key = datastore.key(['ping', uuidv1()]);
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const version = req.body.version;
+        const time = new Date();
+        if(version == undefined || parseInt(version) == NaN){
+            throw new Error("Invalid version");
+        }
+        const data = {
+            key: key,
+            data: {
+                version: version,
+                ip: ip,
+                time: time
+            }
+        }
+        datastore.save(data).then(() => {})
+            .catch(err => {
+                console.error('ERROR: ', err);
+            });;
+        status = "OK";
+        console.log(`Ping using v"${version}" from ${ip}`);
+    } catch (error) {
+        status = "ERR";
+        console.error(error);
+    }
+
+    const jsonResponse = {
+        "status": status,
+        "latestVersion": LATEST_VERSION
+    };
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.send(JSON.stringify(jsonResponse));
+}
+
 app.use(bodyParser.json());
 
 app.get('/', (req, res) => serveInfoPage(req, res));
-app.post('/v1', (req, res) => writeCensoredPost(req, res));
+app.post('/v1/post', (req, res) => writeCensoredPost(req, res));
+app.post('/v1/version', (req, res) => correspondUserVersion(req, res));
 
 app.listen(port, () => console.log(`Running on port ${port}...`));
