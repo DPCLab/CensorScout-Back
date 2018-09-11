@@ -60,6 +60,7 @@ function writeCensoredPost(req, res) {
 
 function correspondUserVersion(req, res) {
     const LATEST_VERSION = 1;
+    const LATEST_VERSION_URL = "https://github.com/dpccdn";
 
     try {
         const key = datastore.key(['ping', uuidv1()]);
@@ -90,7 +91,8 @@ function correspondUserVersion(req, res) {
 
     const jsonResponse = {
         "status": status,
-        "latestVersion": LATEST_VERSION
+        "latestVersion": LATEST_VERSION,
+        "url": LATEST_VERSION_URL
     };
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
