@@ -21,7 +21,7 @@ function writeCensoredPost(req, res) {
     let status = "UNKNOWN";
 
     try {
-        const key = datastore.key(['post', uuidv1()]);
+        const key = datastore.key(['BrowserExtensionPost', uuidv1()]);
         const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         const text = req.body.text;
         const time = new Date();
@@ -30,7 +30,8 @@ function writeCensoredPost(req, res) {
             data: {
                 text: text,
                 ip: ip,
-                time: time
+                time: time,
+                source: "censorscout"
             }
         }
         if (text.length < 4096) {
@@ -43,7 +44,7 @@ function writeCensoredPost(req, res) {
             status = "OK";
             console.log(`+ "${text}" from ${ip}`);
         } else {
-            throw new Error("text too long");
+            throw new Error("Text too long");
         }
     } catch (error) {
         status = "ERR";
