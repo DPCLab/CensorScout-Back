@@ -64,7 +64,7 @@ function correspondUserVersion(req, res) {
     const LATEST_VERSION_URL = "https://github.com/dpccdn";
 
     try {
-        const key = datastore.key(['ping', uuidv1()]);
+        const key = datastore.key(['BrowserExtensionPing', uuidv1()]);
         const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         const version = req.body.version;
         const time = new Date();
