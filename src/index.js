@@ -100,10 +100,35 @@ function correspondUserVersion(req, res) {
     res.send(JSON.stringify(jsonResponse));
 }
 
+var recently_censored_posts = null;
+
+async function loadRecentlyCensoredPosts() {
+    let query = datastore.createQuery('WeiboPost').filter('visible', '=', false).order('retrieved', {
+        descending: true
+    }).limit(100);
+    let results = await datastore.runQuery(query);
+    console.log(results)
+    recently_censored_posts = {
+        posts: results[0],
+        lastUpdated: new Date()
+    }
+}
+
+async function serveRecentlyCensoredPosts(req, res) {
+    let currentTime = new Date().getTime();
+    if(recently_censored_posts == null || recently_censored_posts.lastUpdated < currentTime - (30*60*1000)){
+        await loadRecentlyCensoredPosts();
+    }
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.send(JSON.stringify(recently_censored_posts));
+}
+
 app.use(bodyParser.json());
 
 app.get('/', (req, res) => serveInfoPage(req, res));
 app.post('/v1/post', (req, res) => writeCensoredPost(req, res));
 app.post('/v1/version', (req, res) => correspondUserVersion(req, res));
+app.get('/v1/censored_posts', (req, res) => serveRecentlyCensoredPosts(req, res));
 
 app.listen(port, () => console.log(`Running on port ${port}...`));
