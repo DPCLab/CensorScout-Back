@@ -2,6 +2,10 @@ const fs = require('fs');
 const Datastore = require('@google-cloud/datastore');
 const uuidv1 = require('uuid/v1');
 var bodyParser = require('body-parser');
+var PATtree = require('pat-tree');
+const {
+    Translate
+} = require('@google-cloud/translate');
 var express = require('express'),
     app = express(),
     port = parseInt(process.env.PORT, 10) || 3000;
@@ -9,6 +13,10 @@ var express = require('express'),
 const projectId = process.env.GOOGLE_PROJECT_ID;
 
 const datastore = new Datastore({
+    projectId: projectId,
+});
+
+const translate = new Translate({
     projectId: projectId,
 });
 
@@ -68,7 +76,7 @@ function correspondUserVersion(req, res) {
         const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
         const version = req.body.version;
         const time = new Date();
-        if(version == undefined || parseInt(version) == NaN){
+        if (version == undefined || parseInt(version) == NaN) {
             throw new Error("Invalid version");
         }
         const data = {
@@ -102,21 +110,54 @@ function correspondUserVersion(req, res) {
 
 var recently_censored_posts = null;
 
+function isASCII(str, extended) {
+    return (extended ? /^[\x00-\xFF]*$/ : /^[\x00-\x7F]*$/).test(str);
+}
+
+async function extractTrends(posts) {
+    let tree = new PATtree();
+    for (let post of posts) {
+        if (post.text != null) {
+            tree.addDocument(post.text);
+        }
+    }
+    slps = tree.extractSLP(2, 0.5, false).sort((a, b) => {
+        return b.se - a.se;
+    }).slice(0, 25);
+    let relevantTerms = [];
+    for (let pattern of slps) {
+        let meaning = (await translate.translate(pattern.sistring, 'en'))[0];
+        if (meaning == pattern.sistring || !isASCII(meaning, true)) {
+            continue;
+        }
+        relevantTerms.push({
+            term: pattern.sistring,
+            meaning: meaning,
+            frequency: pattern.frequency
+        });
+    }
+    return relevantTerms;
+}
+
 async function loadRecentlyCensoredPosts() {
+    console.log("Loading censored posts...");
     let query = datastore.createQuery('WeiboPost').filter('visible', '=', false).order('retrieved', {
         descending: true
-    }).limit(100);
+    }).limit(1000);
     let results = await datastore.runQuery(query);
-    console.log(results)
+    let posts = results[0];
+    let trends = await extractTrends(posts);
     recently_censored_posts = {
-        posts: results[0],
+        posts: posts,
+        trends: trends,
         lastUpdated: new Date()
     }
+    console.log("Finished loading censored posts...!");
 }
 
 async function serveRecentlyCensoredPosts(req, res) {
     let currentTime = new Date().getTime();
-    if(recently_censored_posts == null || recently_censored_posts.lastUpdated < currentTime - (30*60*1000)){
+    if (recently_censored_posts == null) {
         await loadRecentlyCensoredPosts();
     }
     res.setHeader('Content-Type', 'application/json');
@@ -124,11 +165,16 @@ async function serveRecentlyCensoredPosts(req, res) {
     res.send(JSON.stringify(recently_censored_posts));
 }
 
-app.use(bodyParser.json());
+// INITIALIZATION
 
-app.get('/', (req, res) => serveInfoPage(req, res));
-app.post('/v1/post', (req, res) => writeCensoredPost(req, res));
-app.post('/v1/version', (req, res) => correspondUserVersion(req, res));
-app.get('/v1/censored_posts', (req, res) => serveRecentlyCensoredPosts(req, res));
+setInterval(loadRecentlyCensoredPosts, 60 * 60 * 1000);
+loadRecentlyCensoredPosts().then(() => {
+    app.use(bodyParser.json());
 
-app.listen(port, () => console.log(`Running on port ${port}...`));
+    app.get('/', (req, res) => serveInfoPage(req, res));
+    app.post('/v1/post', (req, res) => writeCensoredPost(req, res));
+    app.post('/v1/version', (req, res) => correspondUserVersion(req, res));
+    app.get('/v1/censored_posts', (req, res) => serveRecentlyCensoredPosts(req, res));
+
+    app.listen(port, () => console.log(`Running on port ${port}...`));
+});
