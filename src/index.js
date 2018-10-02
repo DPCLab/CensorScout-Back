@@ -181,6 +181,9 @@ async function loadRecentlyCensoredPosts() {
   let results = await datastore.runQuery(query);
   let posts = results[0];
 
+  let sourceUrls = (await datastore.runQuery(datastore
+  .createQuery("WeiboUrl")))[0];
+
   let trends = await extractTrends(posts);
 
   let all_posts_recently = (await datastore.runQuery(
@@ -201,6 +204,7 @@ async function loadRecentlyCensoredPosts() {
   recently_censored_posts = {
     posts: posts,
     trends: trends,
+    sourceUrls: sourceUrls,
     stats: {
       mostRecent: {
         total: all_posts_recently.length,
@@ -236,6 +240,9 @@ function downloadCensoredPosts(req, res) {
   zip
     .append(JSON.stringify(recently_censored_posts.posts), {
       name: "posts.json"
+    })
+    .append(JSON.stringify(recently_censored_posts.sourceUrls), {
+      name: "sourceUrls.json"
     })
     .append(JSON.stringify(recently_censored_posts.stats), {
       name: "stats.json"
