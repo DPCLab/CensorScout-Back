@@ -185,6 +185,7 @@ async function loadRecentlyCensoredPosts() {
   ))[0].slice(3000, 5000); // cut out the more recent posts which are less likely to have been checked
   let non_censored_recently = all_posts_recently.filter(post => post["visible"]).length;
   let stat_start_date = all_posts_recently[all_posts_recently.length - 1]['retrieved'];
+  let stat_end_date = all_posts_recently[0]['retrieved'];
 
   let censored_recently = all_posts_recently.length - non_censored_recently;
   recently_censored_posts = {
@@ -195,7 +196,8 @@ async function loadRecentlyCensoredPosts() {
         total: all_posts_recently.length,
         censored: censored_recently,
         visible: non_censored_recently,
-        startDate: stat_start_date
+        startDate: stat_start_date,
+        endDate: stat_end_date
       },
       total: {
           total: all_posts_count,
