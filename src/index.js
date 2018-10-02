@@ -181,8 +181,9 @@ async function loadRecentlyCensoredPosts() {
   let results = await datastore.runQuery(query);
   let posts = results[0];
 
-  let sourceUrls = (await datastore.runQuery(datastore
-  .createQuery("WeiboUrl")))[0];
+  let sourceUrls = (await datastore.runQuery(
+    datastore.createQuery("WeiboUrl")
+  ))[0];
 
   let trends = await extractTrends(posts);
 
@@ -266,9 +267,7 @@ loadRecentlyCensoredPosts().then(() => {
   app.get("/v1/censored_posts", (req, res) =>
     serveRecentlyCensoredPosts(req, res)
   );
-  app.get("/v1/download_recent", (req, res) =>
-    downloadCensoredPosts(req, res)
-  );
+  app.get("/v1/download_recent", (req, res) => downloadCensoredPosts(req, res));
 
   app.listen(port, () => console.log(`Running on port ${port}...`));
 });
