@@ -4,6 +4,7 @@ const uuidv1 = require("uuid/v1");
 var bodyParser = require("body-parser");
 var PATtree = require("pat-tree");
 const { Translate } = require("@google-cloud/translate");
+var archiver = require("archiver");
 var express = require("express"),
   app = express(),
   port = parseInt(process.env.PORT, 10) || 3000;
@@ -144,22 +145,28 @@ async function extractTrends(posts) {
       frequency: pattern.frequency
     });
   }
-  return relevantTerms.sort((a, b) => b.frequency - a.frequency).filter(a => !/^[a-zA-Z\w@/]+$/.test(a.term));
+  return relevantTerms
+    .sort((a, b) => b.frequency - a.frequency)
+    .filter(a => !/^[a-zA-Z\w@/]+$/.test(a.term));
 }
 
 async function loadRecentlyCensoredPosts() {
   console.log("Loading censored posts...");
 
-  let metaTotalQuery = datastore.createQuery("__Stat_Kind__").filter('kind_name', '=', 'WeiboPost');
+  let metaTotalQuery = datastore
+    .createQuery("__Stat_Kind__")
+    .filter("kind_name", "=", "WeiboPost");
   let metaTotalResponse = await datastore.runQuery(metaTotalQuery);
-  let metaCensoredQuery = datastore.createQuery("__Stat_PropertyName_Kind__").filter('property_name', '=', 'potentially_censored');
+  let metaCensoredQuery = datastore
+    .createQuery("__Stat_PropertyName_Kind__")
+    .filter("property_name", "=", "potentially_censored");
   let metaCensoredResponse = await datastore.runQuery(metaCensoredQuery);
   let all_posts_count = metaTotalResponse[0][0].count;
   let censored_posts_count = 0;
-  try{
+  try {
     censored_posts_count = metaCensoredResponse[0][0].count;
-  }catch(err){
-      // nothing; it hasn't been populated yet
+  } catch (err) {
+    // nothing; it hasn't been populated yet
   }
 
   let non_censored_posts_count = all_posts_count - censored_posts_count;
@@ -184,9 +191,11 @@ async function loadRecentlyCensoredPosts() {
       })
       .limit(5000)
   ))[0].slice(3000, 5000); // cut out the more recent posts which are less likely to have been checked
-  let non_censored_recently = all_posts_recently.filter(post => post["visible"]).length;
-  let stat_start_date = all_posts_recently[all_posts_recently.length - 1]['retrieved'];
-  let stat_end_date = all_posts_recently[0]['retrieved'];
+  let non_censored_recently = all_posts_recently.filter(post => post["visible"])
+    .length;
+  let stat_start_date =
+    all_posts_recently[all_posts_recently.length - 1]["retrieved"];
+  let stat_end_date = all_posts_recently[0]["retrieved"];
 
   let censored_recently = all_posts_recently.length - non_censored_recently;
   recently_censored_posts = {
@@ -201,9 +210,9 @@ async function loadRecentlyCensoredPosts() {
         endDate: stat_end_date
       },
       total: {
-          total: all_posts_count,
-          censored: censored_posts_count,
-          visible: non_censored_posts_count,
+        total: all_posts_count,
+        censored: censored_posts_count,
+        visible: non_censored_posts_count
       }
     },
     lastUpdated: new Date()
@@ -212,13 +221,29 @@ async function loadRecentlyCensoredPosts() {
 }
 
 async function serveRecentlyCensoredPosts(req, res) {
-  let currentTime = new Date().getTime();
-  if (recently_censored_posts == null) {
-    await loadRecentlyCensoredPosts();
-  }
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.send(JSON.stringify(recently_censored_posts));
+}
+
+function downloadCensoredPosts(req, res) {
+  res.writeHead(200, {
+    "Content-Type": "application/zip",
+    "Content-disposition": "attachment; filename=china_data_dpclab.zip"
+  });
+  var zip = archiver("zip");
+  zip.pipe(res);
+  zip
+    .append(JSON.stringify(recently_censored_posts.posts), {
+      name: "posts.json"
+    })
+    .append(JSON.stringify(recently_censored_posts.stats), {
+      name: "stats.json"
+    })
+    .append(JSON.stringify(recently_censored_posts.trends), {
+      name: "trends.json"
+    })
+    .finalize();
 }
 
 // INITIALIZATION
@@ -233,6 +258,9 @@ loadRecentlyCensoredPosts().then(() => {
   app.post("/v1/version", (req, res) => correspondUserVersion(req, res));
   app.get("/v1/censored_posts", (req, res) =>
     serveRecentlyCensoredPosts(req, res)
+  );
+  app.get("/v1/download_recent", (req, res) =>
+    downloadCensoredPosts(req, res)
   );
 
   app.listen(port, () => console.log(`Running on port ${port}...`));
