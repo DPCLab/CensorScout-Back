@@ -126,7 +126,7 @@ async function extractTrends(posts) {
     }
   }
   slps = tree
-    .extractSLP(2, 0.5, false)
+    .extractSLP(5, 0.5, false)
     .sort((a, b) => {
       return b.se - a.se;
     })
@@ -134,6 +134,7 @@ async function extractTrends(posts) {
   let relevantTerms = [];
   for (let pattern of slps) {
     let meaning = (await translate.translate(pattern.sistring, "en"))[0];
+    // let meaning = "";
     if (meaning == pattern.sistring || !isASCII(meaning, true)) {
       continue;
     }
@@ -143,7 +144,7 @@ async function extractTrends(posts) {
       frequency: pattern.frequency
     });
   }
-  return relevantTerms;
+  return relevantTerms.sort((a, b) => b.frequency - a.frequency).filter(a => !a.term.includes('@'));
 }
 
 async function loadRecentlyCensoredPosts() {
