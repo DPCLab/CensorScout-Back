@@ -144,7 +144,7 @@ async function extractTrends(posts) {
       frequency: pattern.frequency
     });
   }
-  return relevantTerms.sort((a, b) => b.frequency - a.frequency).filter(a => !a.term.includes('@'));
+  return relevantTerms.sort((a, b) => b.frequency - a.frequency).filter(a => !/^[a-zA-Z\w@/]+$/.test(a.term));
 }
 
 async function loadRecentlyCensoredPosts() {
