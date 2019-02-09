@@ -255,9 +255,6 @@ function downloadCensoredPosts(req, res) {
 }
 
 // INITIALIZATION
-
-setInterval(loadRecentlyCensoredPosts, 60 * 60 * 1000);
-
 loadRecentlyCensoredPosts().then(() => {
   app.use(bodyParser.json());
 
